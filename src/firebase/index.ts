@@ -35,7 +35,8 @@ type Role = 'owner' | 'employee'
 const CollectionNames = {
   auth_users: 'auth_users',
   employees: 'employees',
-  otp_verifications: 'otp_verifications'
+  otp_verifications: 'otp_verifications',
+  tasks: 'tasks'
 }
 
 export { adminAuth, adminDb, Role, CollectionNames }

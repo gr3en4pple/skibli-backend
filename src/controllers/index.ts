@@ -7,12 +7,21 @@ import {
   getEmployeeById,
   loginByEmail,
   removeEmployee,
+  updateEmployee,
   validateOtp,
   verifyEmailLink,
   verifySessionCookie
 } from '@/lib/authService'
+import {
+  createTask,
+  getTaskById,
+  getEmployeeTasks,
+  changeTaskStatus,
+  getAllTasks
+} from '@/lib/tasksService'
 import { verifyJWT } from '@/utils'
 import { JwtPayload } from 'jsonwebtoken'
+import { TaskStatus } from '@/types'
 
 export default class Controllers {
   async createNewAccessCode(req: Request, res: Response) {
@@ -54,7 +63,6 @@ export default class Controllers {
 
   async getMe(req: Request, res: Response) {
     const user = (req as any)?.user
-    console.log('user:', user)
 
     return await verifySessionCookie({ userData: user, res })
   }
@@ -116,13 +124,91 @@ export default class Controllers {
   }
 
   async deleteEmployee(req: Request, res: Response) {
-    const id = req.query.id
+    const { id } = req.params
 
     if (!id)
       return res.status(400).json({ error: true, message: 'Missing params!' })
     return await removeEmployee(id as string, res)
   }
+
+  async editEmployee(req: Request, res: Response) {
+    const { id } = req.params
+    const { name = '', phone = '', email = '' } = req.body
+
+    if (!id || !email)
+      return res.status(400).json({ error: true, message: 'Missing params!' })
+    if (!name && !phone)
+      return res.status(200).json({ success: true, message: 'Successfully!' })
+
+    return await updateEmployee(id as string, { email, name, phone }, res)
+  }
   //** OWNER ONLY */
 
   async updateUserProfile(req: any, res: any) {}
+
+  // ** TASK CONTROLLERS **
+
+  async createTask(req: Request, res: Response) {
+    const { title, description, assigneeId } = req.body
+
+    if (!title || !description || !assigneeId) {
+      return res.status(400).json({
+        error: true,
+        message: 'Missing required fields: title, description, assignee'
+      })
+    }
+
+    return await createTask({ title, description, assigneeId: assigneeId }, res)
+  }
+
+  async getTask(req: Request, res: Response) {
+    const { id } = req.params
+
+    if (!id) {
+      return res.status(400).json({
+        error: true,
+        message: 'Task ID is required'
+      })
+    }
+
+    return await getTaskById(id, res)
+  }
+
+  // Get all tasks (owner only)
+  async getAllTasks(req: Request, res: Response) {
+    const currentUser = (req as any)?.user
+    if (!currentUser?.uid) {
+      return res.status(400).json({
+        error: true,
+        message: 'User not authenticated'
+      })
+    }
+    if (currentUser?.role === 'owner') {
+      return await getAllTasks(res)
+    }
+
+    return await getEmployeeTasks(currentUser.email, res)
+  }
+
+  async updateTaskStatus(req: Request, res: Response) {
+    const { id } = req.params
+    const { status } = req.body
+    const currentUser = (req as any)?.user
+
+    if (!id) {
+      return res.status(400).json({
+        error: true,
+        message: 'Task ID is required'
+      })
+    }
+
+    if (!status || !['todo', 'inprogress', 'done'].includes(status)) {
+      return res.status(400).json({
+        error: true,
+        message: 'Valid status is required: todo, inprogress, or done'
+      })
+    }
+
+    return await changeTaskStatus(id, status as TaskStatus, res)
+  }
 }

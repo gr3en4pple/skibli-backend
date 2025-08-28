@@ -12,7 +12,13 @@ import { JwtPayload } from 'jsonwebtoken'
 import { CreateEmployeeParams, ValidateOtpParams } from '@/types'
 import { sendVerificationLinkByMail } from '../mailService'
 
-const findUser = async ({ value, field }: { value: string; field: string }) => {
+export const findUser = async ({
+  value,
+  field
+}: {
+  value: string
+  field: string
+}) => {
   const authUsersRef = adminDb.collection(CollectionNames.auth_users)
   const snapshot = await authUsersRef.where(field, '==', value).get()
   return snapshot
@@ -287,14 +293,18 @@ const completeCreateEmployee = async ({
       return res.status(400).json({ error: true, message: 'No employee' })
     }
 
-    const pwHashed = await hashedPassword(password)
+    const passwordHashed = await hashedPassword(password)
+
     const authUsersRef = adminDb.collection(CollectionNames.auth_users)
     const userRef = await authUsersRef.add({
       email,
       username,
-      password: pwHashed,
+      password: passwordHashed,
       role: 'employee',
       createdAt: Timestamp.now()
+    })
+    await employeeSnapshot.docs[0].ref.update({
+      hasAccount: true
     })
 
     const userDoc = await userRef.get()
@@ -326,8 +336,43 @@ const completeCreateEmployee = async ({
 const addEmployee = async (params: CreateEmployeeParams, res: Response) => {
   try {
     const employeesCollection = adminDb.collection(CollectionNames.employees)
+
+    const emailSnapshot = await employeesCollection
+      .where('email', '==', params.email)
+      .get()
+    if (!emailSnapshot.empty) {
+      return res.status(400).json({
+        error: true,
+        message: 'Email existed'
+      })
+    }
+
+    if (params?.phone) {
+      const phoneSnapshot = await employeesCollection
+        .where('phone', '==', params.phone)
+        .get()
+      if (!phoneSnapshot.empty) {
+        return res.status(400).json({
+          error: true,
+          message: 'Phone existed'
+        })
+      }
+
+      const authUserByPhone = await findUser({
+        field: 'phone',
+        value: params.phone
+      })
+      if (!authUserByPhone.empty) {
+        return res.status(400).json({
+          error: true,
+          message: 'Phone existed'
+        })
+      }
+    }
+
     const employeeDoc = await employeesCollection.add({
       ...params,
+      hasAccount: false,
       createdAt: Timestamp.now()
     })
 
@@ -340,7 +385,7 @@ const addEmployee = async (params: CreateEmployeeParams, res: Response) => {
     await sendVerificationLinkByMail({
       email: params.email,
       name: params.name,
-      verificationLink: `http://localhost:3000/verify-email?token=${token}`
+      verificationLink: `http://localhost:3000/auth/verify-email?token=${token}`
     })
 
     return res.status(200).json({
@@ -360,8 +405,84 @@ const addEmployee = async (params: CreateEmployeeParams, res: Response) => {
 const removeEmployee = async (id: string, res: Response) => {
   try {
     const employeesCollection = adminDb.collection(CollectionNames.employees)
-    await employeesCollection.doc(id).delete()
+    const authUsersCollection = adminDb.collection(CollectionNames.auth_users)
+    const employeeDoc = await employeesCollection.doc(id).get()
+    const employeeData = employeeDoc.data()
+    if (!employeeData)
+      return res.status(404).json({
+        error: true,
+        message: 'Not found employee'
+      })
 
+    if (employeeData.hasAccount) {
+      const authQuerySnapshot = await authUsersCollection
+        .where('email', '==', employeeData.email)
+        .get()
+
+      await Promise.all(authQuerySnapshot.docs.map((doc) => doc.ref.delete()))
+    }
+
+    await employeesCollection.doc(id).delete()
+    return res.status(200).json({
+      success: true,
+      message: 'Successfully!'
+    })
+  } catch (error: any) {
+    return res.status(error?.status || 500).json({
+      error: true,
+      message: error?.message || 'Internal Server Error'
+    })
+  }
+}
+
+const updateEmployee = async (
+  id: string,
+  params: { email: string; name?: string; phone?: string },
+  res: Response
+) => {
+  try {
+    const employeesCollection = adminDb.collection(CollectionNames.employees)
+    const employeeDoc = employeesCollection.doc(id)
+    const employeeRef = await employeeDoc.get()
+    if (!employeeRef.data())
+      return res.status(404).json({
+        error: true,
+        message: 'Employee not found!'
+      })
+
+    if (params?.phone) {
+      const employeeSnapshot = await employeesCollection
+        .where('phone', '==', params.phone)
+        .get()
+      if (!employeeSnapshot.empty) {
+        const employeeEmail = await employeeSnapshot.docs[0].get('email')
+        if (employeeEmail !== params.email) {
+          return res.status(400).json({
+            error: true,
+            message: 'Phone existed'
+          })
+        }
+      }
+
+      const authUserByPhone = await findUser({
+        field: 'phone',
+        value: params.phone
+      })
+      if (!authUserByPhone.empty) {
+        const employeePhone = await employeeSnapshot.docs[0].get('phone')
+        if (employeePhone === params.phone) {
+          return res.status(400).json({
+            error: true,
+            message: 'Phone existed'
+          })
+        }
+      }
+    }
+
+    await employeeDoc.update({
+      ...params,
+      updatedAt: Timestamp.now()
+    })
     return res.status(200).json({
       success: true,
       message: 'Successfully!'
@@ -525,5 +646,6 @@ export {
   getEmployeeById,
   addEmployee,
   removeEmployee,
+  updateEmployee,
   loginByEmail
 }

@@ -20,7 +20,6 @@ const sendVerificationLinkByMail = async ({
       pass: process.env.NODEMAILER_PASSWORD
     }
   })
-  console.log('verificationLink:', verificationLink)
 
   await transporter.sendMail({
     from: `${process.env.NODEMAILER_MAIL}`,
@@ -29,7 +28,7 @@ const sendVerificationLinkByMail = async ({
     html: `
         <p>Hello ${name || 'employee'},</p>
         <p>Please click the link below to verify your account and set your password:</p>
-        <a href="${verificationLink}">Verify & Setup Account</a>
+        <a href="${verificationLink}">Verify link:${verificationLink}</a>
       `
   })
 }

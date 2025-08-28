@@ -13,5 +13,23 @@ type ValidateOtpParams = (
   | { userField: 'email'; data: { email: string; password: string } }
 ) & { otp: string; res: Response }
 
-export { CreateEmployeeParams }
-export type { ValidateOtpParams }
+type TaskStatus = 'todo' | 'inprogress' | 'done'
+
+interface Task {
+  id?: string
+  title: string
+  description: string
+  assignee: string 
+  status: TaskStatus
+  createdAt?: any 
+  updatedAt?: any 
+}
+
+interface CreateTaskParams {
+  title: string
+  description: string
+  assigneeId: string
+}
+
+export { CreateEmployeeParams, CreateTaskParams }
+export type { ValidateOtpParams, Task, TaskStatus }
