@@ -22,7 +22,8 @@ const validateUserEmailPassword = async ({
   password: string
 }) => {
   const snapshot = await findUser({ field: 'email', value: email })
-  if (snapshot.empty) return { error: true, message: 'Invalid credentials' }
+  if (!snapshot || snapshot.empty)
+    return { error: true, message: 'Invalid credentials' }
   const userDoc = snapshot.docs[0]
   const user = userDoc.data()
 
@@ -71,22 +72,23 @@ const findOrCreatePhoneUser = async ({
     uid: userDoc.id
   }
 }
-const createOtp = async ({
-  dataField,
-  data,
-  res
-}: {
-  dataField: 'email' | 'phone'
-  data: string
+const createOtp = async (
+  {
+    dataField,
+    data
+  }: {
+    dataField: 'email' | 'phone'
+    data: string
+  },
   res: Response
-}) => {
+) => {
   try {
     const otpDocRef = adminDb
       .collection(CollectionNames.otp_verifications)
       .doc(data)
     const otpDoc = await otpDocRef.get()
 
-    // check if otp existed but has not expired.
+    // check if otp existed
     if (otpDoc.exists) {
       const data = otpDoc.data()
       const now = Date.now()
@@ -261,48 +263,10 @@ const loginByEmail = async (
       ...user
     } = await validateUserEmailPassword({ email, password })
     if (error) {
-      return res.json(400).json({ message, error })
-    }
-    const otp = getRandom6DigitsOtp()
-    // await twilioClient.messages.create({
-    //   body: `Your verification code is ${otp}`,
-    //   to: phone,
-    //   from: process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER,
-    // });
-
-    const otpDocRef = adminDb
-      .collection(CollectionNames.otp_verifications)
-      .doc(email)
-    const otpDoc = await otpDocRef.get()
-
-    if (otpDoc.exists) {
-      const data = otpDoc.data()
-      const now = Date.now()
-      const expiredAt = data?.expiredAt?.toMillis() || 0
-
-      if (data?.isVerified || now >= expiredAt) {
-        await otpDocRef.delete()
-      } else {
-        return res.status(200).json({
-          message: 'OTP already sent to this email',
-          success: true
-        })
-      }
+      return res.status(400).json({ message, error })
     }
 
-    await otpDocRef.set({
-      email,
-      otp,
-      createdAt: Timestamp.now(),
-      // expires in 15 minutes
-      expiredAt: Timestamp.fromDate(new Date(Date.now() + ms('15 minutes'))),
-      isVerified: false
-    })
-
-    return res.status(200).json({
-      message: 'Successfully sent otp: OTP is ' + otp,
-      success: true
-    })
+    return await createOtp({ data: email, dataField: 'email' }, res)
   } catch (error: any) {
     return res
       .status(error?.status || 500)

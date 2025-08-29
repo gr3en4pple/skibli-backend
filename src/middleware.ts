@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { verifyJWT } from '@/utils'
 import type { Role } from '@/types'
+import type { Socket } from 'socket.io'
 
 export function authMiddleware(
   req: Request,
@@ -26,5 +27,29 @@ export function requireRole(role: Role) {
       return res.status(403).json({ error: true, message: 'Forbidden' })
     }
     next()
+  }
+}
+
+export function socketMiddleware(socket: Socket, next: any) {
+  try {
+    const reqCookies = socket.handshake.headers.cookie || ''
+    let token
+    if (reqCookies) {
+      const sessionCookieRaw = reqCookies
+        .split(';')
+        .find((cookie) => cookie.includes('session='))
+      if (sessionCookieRaw) token = sessionCookieRaw.replace('session=', '')
+    }
+    if (!token) {
+      return next(new Error('Authentication error: missing token'))
+    }
+    token = token.replace(/ /g, '')
+
+    const decoded = verifyJWT(token)
+    ;(socket as any).user = decoded
+
+    next()
+  } catch (err) {
+    next(new Error('Forbidden'))
   }
 }

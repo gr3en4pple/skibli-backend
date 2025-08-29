@@ -24,6 +24,7 @@ import {
 import { verifyJWT } from '@/utils'
 import { JwtPayload } from 'jsonwebtoken'
 import { TaskStatus } from '@/types'
+import { getAllChatMembers, getRoomChatHistory } from '@/service/chat'
 
 export default class Controllers {
   async createNewAccessCode(req: Request, res: Response) {
@@ -36,7 +37,7 @@ export default class Controllers {
         status: 400
       })
     }
-    return await createOtp({ dataField: 'phone', data: phone, res })
+    return await createOtp({ dataField: 'phone', data: phone }, res)
   }
 
   async validateAccessCode(req: Request, res: Response) {
@@ -211,5 +212,25 @@ export default class Controllers {
     }
 
     return await changeTaskStatus(id, status as TaskStatus, res)
+  }
+
+  async getChatMembers(req: Request, res: Response) {
+    return await getAllChatMembers(res)
+  }
+
+  async getChatHistory(req: Request, res: Response) {
+    const { roomId } = req.params
+    const { uid } = (req as any)?.user
+    if (!roomId) {
+      return res.status(400).json({ message: 'Invalid params', error: true })
+    }
+    const userIdParseFromRoom = roomId.toLowerCase().split('_')
+    if (!userIdParseFromRoom.includes(uid.toLowerCase())) {
+      return res.status(403).json({
+        error: true,
+        message: 'Unauthorized'
+      })
+    }
+    return await getRoomChatHistory({ roomId, userId: uid }, res)
   }
 }

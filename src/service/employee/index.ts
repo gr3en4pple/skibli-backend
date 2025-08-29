@@ -184,6 +184,8 @@ const removeEmployee = async (id: string, res: Response) => {
   try {
     const employeesCollection = adminDb.collection(CollectionNames.employees)
     const authUsersCollection = adminDb.collection(CollectionNames.auth_users)
+    const tasksCollection = adminDb.collection(CollectionNames.tasks)
+
     const employeeDoc = await employeesCollection.doc(id).get()
     const employeeData = employeeDoc.data()
     if (!employeeData)
@@ -192,12 +194,18 @@ const removeEmployee = async (id: string, res: Response) => {
         message: 'Not found employee'
       })
 
+    
     if (employeeData.hasAccount) {
-      const authQuerySnapshot = await authUsersCollection
-        .where('email', '==', employeeData.email)
-        .get()
+      // delete users, task
+      const [authQuerySnapshot, userTasksQuerySnapshot] = await Promise.all([
+        authUsersCollection.where('email', '==', employeeData.email).get(),
+        tasksCollection.where('assigneeId', '==', id).get()
+      ])
 
-      await Promise.all(authQuerySnapshot.docs.map((doc) => doc.ref.delete()))
+      await Promise.all([
+        ...authQuerySnapshot.docs.map((doc) => doc.ref.delete()),
+        userTasksQuerySnapshot.docs.map((doc) => doc.ref.delete())
+      ])
     }
 
     await employeesCollection.doc(id).delete()

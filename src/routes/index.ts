@@ -79,7 +79,14 @@ router.put('/tasks/:id/status', authMiddleware, controller.updateTaskStatus)
 
 //** CHAT ROUTES */
 
+// chat members
+router.get('/chats/members', authMiddleware, controller.getChatMembers)
+
 // chat history
-router.get('/chats/history/:roomId', authMiddleware, controller.updateTaskStatus)
+router.get(
+  '/chats/history/:roomId',
+  authMiddleware,
+  controller.getChatHistory
+)
 
 export default router

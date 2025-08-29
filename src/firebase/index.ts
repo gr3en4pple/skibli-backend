@@ -35,7 +35,8 @@ const CollectionNames = {
   employees: 'employees',
   otp_verifications: 'otp_verifications',
   tasks: 'tasks',
-  chats: 'chats'
+  chats: 'chats',
+  messages: 'messages'
 }
 
 export { adminAuth, adminDb, CollectionNames }
