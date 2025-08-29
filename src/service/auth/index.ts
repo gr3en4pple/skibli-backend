@@ -127,7 +127,7 @@ const createOtp = async ({
   } catch (error: any) {
     console.warn('send-sms-otp error:', error)
     return res.status(error?.status || 500).json({
-      message: error?.message || 'Something wrong!',
+      message: 'Internal Server Error',
       error: true
     })
   }
