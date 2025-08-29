@@ -30,13 +30,12 @@ const app = initializeFirebaseAdmin()
 const adminAuth = getAuth(app)
 const adminDb = getFirestore(app)
 
-type Role = 'owner' | 'employee'
-
 const CollectionNames = {
   auth_users: 'auth_users',
   employees: 'employees',
   otp_verifications: 'otp_verifications',
-  tasks: 'tasks'
+  tasks: 'tasks',
+  chats: 'chats'
 }
 
-export { adminAuth, adminDb, Role, CollectionNames }
+export { adminAuth, adminDb, CollectionNames }

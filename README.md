@@ -12,7 +12,7 @@
 src/
 ├── controllers/         # App controllers
 ├── firebase/            # Firebase admin initialize instance
-├── lib/                 # App services helper (auth, sendMail, tasks, employee services)
+├── service/             # App services helper (auth, otp, tasks, employee)
 ├── routes/              # App defined api routes with 
 ├── types/               # Type definitions
 └── utils/               # App utilities

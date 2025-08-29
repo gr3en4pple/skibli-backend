@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
-import { verifyJWT } from './utils'
-import { Role } from './firebase'
+import { verifyJWT } from '@/utils'
+import type { Role } from '@/types'
 
 export function authMiddleware(
   req: Request,
@@ -13,7 +13,7 @@ export function authMiddleware(
 
   try {
     const decoded = verifyJWT(token)
-    ;(req as any).user = decoded // attach user info
+    ;(req as any).user = decoded
     next()
   } catch (err) {
     return res.status(403).json({ error: 'Invalid token' })

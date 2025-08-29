@@ -5,6 +5,7 @@ import { authMiddleware, requireRole } from '@/middleware'
 const router = Router()
 const controller = new Controllers()
 
+//** AUTHENTICATION ROUTES */
 // clear cookie - logout
 router.post('/logout', controller.logout)
 // login phone
@@ -22,8 +23,9 @@ router.post(
 // get user data by cookie
 router.get('/me', authMiddleware, controller.getMe)
 
-//** OWNER ONLY */
+//** EMPLOYEE ROUTES */
 
+//** OWNER ONLY */
 router.get(
   '/employees',
   authMiddleware,
@@ -62,12 +64,7 @@ router.put(
 
 //** OWNER ONLY */
 
-router.post(
-  '/tasks',
-  authMiddleware,
-  requireRole('owner'),
-  controller.createTask
-)
+router.post('/tasks', authMiddleware, requireRole('owner'), controller.addTask)
 
 //** OWNER ONLY */
 
@@ -79,5 +76,10 @@ router.get('/tasks/:id', authMiddleware, controller.getTask)
 
 // change task status
 router.put('/tasks/:id/status', authMiddleware, controller.updateTaskStatus)
+
+//** CHAT ROUTES */
+
+// chat history
+router.get('/chats/history/:roomId', authMiddleware, controller.updateTaskStatus)
 
 export default router

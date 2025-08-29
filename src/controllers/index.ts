@@ -1,24 +1,26 @@
-import { NextFunction, Request, Response } from 'express'
+import { Request, Response } from 'express'
+import {
+  createOtp,
+  loginByEmail,
+  validateOtp,
+  verifySessionCookie
+} from '@/service/auth'
 import {
   addEmployee,
   completeCreateEmployee,
-  createOtp,
   getAllEmployees,
   getEmployeeById,
-  loginByEmail,
   removeEmployee,
   updateEmployee,
-  validateOtp,
-  verifyEmailLink,
-  verifySessionCookie
-} from '@/lib/authService'
+  verifyEmailLink
+} from '@/service/employee'
 import {
   createTask,
   getTaskById,
   getEmployeeTasks,
   changeTaskStatus,
   getAllTasks
-} from '@/lib/tasksService'
+} from '@/service/tasks'
 import { verifyJWT } from '@/utils'
 import { JwtPayload } from 'jsonwebtoken'
 import { TaskStatus } from '@/types'
@@ -148,7 +150,7 @@ export default class Controllers {
 
   // ** TASK CONTROLLERS **
 
-  async createTask(req: Request, res: Response) {
+  async addTask(req: Request, res: Response) {
     const { title, description, assigneeId } = req.body
 
     if (!title || !description || !assigneeId) {
@@ -174,7 +176,6 @@ export default class Controllers {
     return await getTaskById(id, res)
   }
 
-  // Get all tasks (owner only)
   async getAllTasks(req: Request, res: Response) {
     const currentUser = (req as any)?.user
     if (!currentUser?.uid) {

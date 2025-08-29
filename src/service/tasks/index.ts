@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import { adminDb, CollectionNames } from '@/firebase'
-import { DocumentData, Timestamp } from 'firebase-admin/firestore'
-import { CreateTaskParams, Task, TaskStatus } from '@/types'
+import { Timestamp } from 'firebase-admin/firestore'
+import { CreateTaskParams, TaskStatus } from '@/types'
 
 const createTask = async (params: CreateTaskParams, res: Response) => {
   try {
@@ -111,7 +111,6 @@ const changeTaskStatus = async (
     const tasksCollection = adminDb.collection(CollectionNames.tasks)
     const taskDoc = tasksCollection.doc(taskId)
 
-    // Check if task exists
     const task = await taskDoc.get()
     if (!task.exists) {
       return res.status(404).json({
@@ -120,13 +119,11 @@ const changeTaskStatus = async (
       })
     }
 
-    // Update task status
     await taskDoc.update({
       status: newStatus,
       updatedAt: Timestamp.now()
     })
 
-    // Get updated task
     const updatedTask = await taskDoc.get()
     const updatedTaskData = updatedTask.data()
 

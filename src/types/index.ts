@@ -1,5 +1,6 @@
-import { Role } from '@/firebase'
 import { Response } from 'express'
+
+type Role = 'owner' | 'employee'
 
 interface CreateEmployeeParams {
   name: string
@@ -19,10 +20,10 @@ interface Task {
   id?: string
   title: string
   description: string
-  assignee: string 
+  assignee: string
   status: TaskStatus
-  createdAt?: any 
-  updatedAt?: any 
+  createdAt?: any
+  updatedAt?: any
 }
 
 interface CreateTaskParams {
@@ -32,4 +33,4 @@ interface CreateTaskParams {
 }
 
 export { CreateEmployeeParams, CreateTaskParams }
-export type { ValidateOtpParams, Task, TaskStatus }
+export type { ValidateOtpParams, Role, Task, TaskStatus }
