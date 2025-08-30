@@ -1,42 +1,52 @@
 import type { Socket } from 'socket.io'
 import { sendMessage } from '@/service/chat'
+import { Timestamp } from 'firebase-admin/firestore'
 
 class ChatSocket {
   private socket: Socket
   constructor(socket: Socket) {
     this.socket = socket
-    this.onSendMessageEvent(socket)
-    this.onDisconnect(socket)
+    this.onJoinRoom(this.socket)
+    this.onLeaveRoom(this.socket)
+    this.onSendMessageEvent(this.socket)
+    this.onDisconnect(this.socket)
   }
 
-  public async onReceiveMessage(
-    socket: Socket,
-    data: {
-      message: string
-      senderId: string
-      toId: string
-    }
-  ) {
-    const roomId = await sendMessage({
-      userId1: data.senderId,
-      userId2: data.toId,
-      senderId: data.senderId,
-      message: data.message
+  public onJoinRoom(socket: Socket) {
+    socket.on('join_room', (roomId) => {
+      socket.join(roomId)
     })
+  }
 
-    if (!roomId) return
-
-    socket.to(roomId).emit('receive_message', {
-      message: data.message,
-      senderId: data.senderId,
-      toId: data.toId
+  public onLeaveRoom(socket: Socket) {
+    socket.on('leave_room', (roomId) => {
+      socket.leave(roomId)
     })
   }
 
   public onSendMessageEvent(socket: Socket) {
-    socket.on('send_message', (data) => {
-      console.log('data:', data)
-      this.onReceiveMessage(socket, data)
+    socket.on('send_message', async (data) => {
+      const sendMessageResponse = await sendMessage({
+        userId1: data.senderId,
+        userId2: data.toId,
+        senderId: data.senderId,
+        message: data.message
+      })
+
+      if (!sendMessageResponse?.roomId || !sendMessageResponse?.messageId)
+        return
+      const { roomId, messageId } = sendMessageResponse
+
+      const messageData = {
+        message: data.message,
+        senderId: data.senderId,
+        toId: data.toId,
+        createdAt: Timestamp.now(),
+        id: messageId
+      }
+
+      socket.emit('receive_message', messageData)
+      socket.to(roomId).emit('receive_message', messageData)
     })
   }
 

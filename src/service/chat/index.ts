@@ -53,12 +53,14 @@ const getRoomChatHistory = async (
     const roomDoc = adminDb.collection(CollectionNames.chats).doc(roomId)
     const roomMessagesSnapshot = await roomDoc
       .collection(CollectionNames.messages)
+      .orderBy('createdAt', 'asc')
       .get()
 
     return res.status(200).json({
       success: true,
       message: 'Successfully!',
       data: roomMessagesSnapshot.docs.map((doc) => ({
+        id: doc.id,
         ...doc.data()
       }))
     })
@@ -108,21 +110,22 @@ const sendMessage = async ({
     if ('password' in userData) delete userData.password
 
     const createdRoomId = await createOrFindRoomId(userId1, userId2)
-    console.log('createdRoomId:', createdRoomId)
 
     const messagesCollection = adminDb
       .collection(CollectionNames.chats)
       .doc(createdRoomId)
       .collection(CollectionNames.messages)
-    const sender = userData.data()
-    await messagesCollection.add({
-      sender,
+    const messageResponse = await messagesCollection.add({
+      sender: userData.data(),
+      senderId,
       message,
-      createdAt: Timestamp.now(),
-      seenBy: [sender?.email]
+      createdAt: Timestamp.now()
     })
 
-    return createdRoomId
+    return {
+      roomId: createdRoomId,
+      messageId: messageResponse.id
+    }
   } catch (error) {
     console.log('error:', error)
   }
